@@ -1,16 +1,63 @@
-# React + Vite
+# Sec Messenger Front End
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite frontend that renders the public posts feed and comment threads from the Sec Messenger backend API. It supports infinite scroll for posts, media previews, and comment trees.
 
-Currently, two official plugins are available:
+## Features
+- Public posts feed with pagination and infinite scroll
+- Comment tree rendering per post
+- Media link and image preview support
+- Configurable API base URL via environment variable
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech Stack
+- React 18
+- Vite 5
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
+- Node.js 18+ recommended
 
-## Expanding the ESLint configuration
+### Install
+```bash
+npm install
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Configure
+```bash
+cp .env.example .env
+```
+Set `VITE_API_BASE_URL` in `.env` if your backend is not running at the default.
+
+### Run (Dev)
+```bash
+npm run dev
+```
+
+### Build
+```bash
+npm run build
+```
+
+### Preview Production Build
+```bash
+npm run preview
+```
+
+## Environment Variables
+- `VITE_API_BASE_URL`: Base URL for the backend API. Default is `https://dinosocial.ir` if not set.
+
+## API Dependencies
+This frontend expects the backend to expose:
+- `GET /api/posts` for paginated posts
+- `GET /api/posts/{post_id}/comments` for comments
+
+See `API_DOC.txt` for the backend API reference.
+
+## Project Structure
+- `src/App.jsx` main UI and data loading
+- `src/services/api.js` API client
+- `src/styles/` global styles
+
+## Notes
+- The feed is read-only; authentication is not required for the public posts endpoint.
+- If you run the backend locally, use `http://127.0.0.1:5000` as the API base URL.

@@ -4,11 +4,19 @@ import { api } from "../services/api";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(api.hasSession());
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
+    setLoading(true);
+
     try {
+      const hasSession = await api.bootstrapAuth();
+      if (!hasSession) {
+        setIsAuthenticated(false);
+        return false;
+      }
+
       await api.getMe();
       setIsAuthenticated(true);
       return true;

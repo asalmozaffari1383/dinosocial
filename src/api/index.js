@@ -1,5 +1,4 @@
 const DEFAULT_BASE_URL = "https://dinosocial.ir";
-let unauthorizedHandler = null;
 
 function normalizeBaseUrl(rawValue) {
   const value = (rawValue || "").trim();
@@ -36,24 +35,11 @@ async function parseResponse(response) {
   const contentType = response.headers.get("content-type") || "";
 
   if (contentType.includes("application/json")) {
-    try {
-      return await response.json();
-    } catch {
-      return {};
-    }
+    return response.json();
   }
 
   const text = await response.text();
   return text ? { raw: text } : {};
-}
-
-class ApiError extends Error {
-  constructor(message, status, data) {
-    super(message);
-    this.name = "ApiError";
-    this.status = status;
-    this.data = data;
-  }
 }
 
 async function request(path, options = {}, retry = true) {
@@ -71,31 +57,25 @@ async function request(path, options = {}, retry = true) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
-    throw new ApiError(`Failed to reach API at ${API_BASE_URL}`, 0, null);
+    throw new Error(`Failed to reach API at ${API_BASE_URL}`);
   }
 
   if (response.status === 401 && retry) {
-    const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    await fetch(`${API_BASE_URL}/api/auth/refresh`, {
       method: "POST",
       credentials: "include",
     });
 
-    if (refreshResponse.ok) {
-      return request(path, options, false);
-    }
+    return request(path, options, false);
   }
 
   const data = await parseResponse(response);
 
   if (!response.ok) {
-    if (response.status === 401 && typeof unauthorizedHandler === "function") {
-      unauthorizedHandler();
-    }
-
-    throw new ApiError(
-      data?.error || data?.message || `Request failed (${response.status})`,
-      response.status,
-      data
+    throw new Error(
+      data?.error ||
+      data?.message ||
+      `Request failed (${response.status})`
     );
   }
 
@@ -103,45 +83,8 @@ async function request(path, options = {}, retry = true) {
 }
 
 export const api = {
-  setUnauthorizedHandler: (handler) => {
-    unauthorizedHandler = handler;
-  },
-
-  login: ({ username, password }) =>
-    request("/api/auth/login", {
-      method: "POST",
-      body: { username, password },
-    }),
-
-  logout: () =>
-    request("/api/auth/logout", {
-      method: "POST",
-    }),
-
-  getMe: () =>
-    request("/api/auth/me"),
-
   getPosts: ({ page = 1, limit = 10 } = {}) =>
     request("/api/posts", {
       query: { page, limit },
-    }),
-
-  getComments: ({ postId }) =>
-    request(`/api/posts/${postId}/comments`),
-
-  createComment: ({ postId, text, parentId = null }) =>
-    request(`/api/posts/${postId}/comments`, {
-      method: "POST",
-      body: { text, parent_id: parentId },
-    }),
-
-  vote: ({ targetType, targetId, value }) =>
-    request("/api/votes", {
-      method: "POST",
-      body: {
-        target_type: targetType,
-        target_id: targetId,
-        value,
-      },
     }),
 };

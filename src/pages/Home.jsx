@@ -1,57 +1,42 @@
-import { useEffect, useState } from "react"
+import PostCard from "../components/posts/postcard"
 
-console.log("HOME FILE LOADED")
+const mockPosts = [
+  {
+    id: 1,
+    text: "اولین پست تستی 🚀",
+    time: "2 ساعت پیش",
+    likes: 12,
+    images: [
+      "https://picsum.photos/300/300?1",
+      "https://picsum.photos/300/300?2",
+    ],
+  },
+  {
+    id: 2,
+    text: "داریم UI رو حرفه‌ای می‌سازیم 😎",
+    time: "5 دقیقه پیش",
+    likes: 30,
+    images: [],
+  },
+]
 
 function Home() {
-  console.log("HOME RENDER")
-
-  const [posts, setPosts] = useState([])
-
-  useEffect(() => {
-    console.log("USE EFFECT RUN")
-
-    const fetchPosts = async () => {
-      try {
-        // این URL روی localhost با proxy Vite کار میکنه
-        const response = await fetch("/api/posts?page=1&page_size=10")
-        const data = await response.json()
-
-        console.log("API RESPONSE FULL:", data)
-
-        // safety check: data.posts باید آرایه باشه
-        const safePosts = data?.posts && Array.isArray(data.posts) ? data.posts : []
-        console.log("SAFE POSTS:", safePosts)
-
-        setPosts(safePosts)
-      } catch (err) {
-        console.error("API ERROR:", err)
-        // fallback: داده mock اگر مشکلی بود
-        const mockPosts = [
-          { id: 1, text: "اولین پست تست" },
-          { id: 2, text: "دومین پست تست" }
-        ]
-        setPosts(mockPosts)
-      }
-    }
-
-    fetchPosts()
-  }, [])
-
   return (
-    <div>
-      <h2>Posts</h2>
+    <div style={styles.container}>
+      <h2>Home Feed</h2>
 
-      {posts.length === 0 && <p>No posts yet</p>}
-
-      <ul>
-        {posts.map((post, i) => (
-          <li key={post?.id ?? i}>
-            <strong>Post #{post?.id ?? "?"}</strong>: {post?.text ?? "No text"}
-          </li>
-        ))}
-      </ul>
+      {mockPosts.map((post) => (
+        <PostCard key={post.id} post={post} />
+      ))}
     </div>
   )
+}
+
+const styles = {
+  container: {
+    maxWidth: "600px",
+    margin: "40px auto",
+  },
 }
 
 export default Home

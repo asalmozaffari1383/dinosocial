@@ -73,6 +73,17 @@ function getCommentChildren(comment) {
   return [];
 }
 
+function makeOptimisticComment(text) {
+  return {
+    id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    text,
+    created_at: new Date().toISOString(),
+    author: "you",
+    children: [],
+    optimistic: true,
+  };
+}
+
 function countCommentsTree(nodes) {
   if (!Array.isArray(nodes)) return 0;
 
@@ -121,6 +132,9 @@ function FeedView() {
   const [loading, setLoading] = useState(false);
   const [commentsByPost, setCommentsByPost] = useState({});
   const [showLogin, setShowLogin] = useState(false);
+  const [newCommentByPost, setNewCommentByPost] = useState({});
+  const [commentSubmittingByPost, setCommentSubmittingByPost] = useState({});
+  const [commentErrorByPost, setCommentErrorByPost] = useState({});
 
   const visibleCommentsTotal = useMemo(() => {
     return Object.values(commentsByPost).reduce((sum, state) => {
@@ -165,6 +179,89 @@ function FeedView() {
     }
   }, []);
 
+  const handleCommentInputChange = useCallback((postId, value) => {
+    setNewCommentByPost((prev) => ({
+      ...prev,
+      [postId]: value,
+    }));
+  }, []);
+
+  const handleAddComment = useCallback(
+    async (postId) => {
+      const draft = (newCommentByPost[postId] || "").trim();
+      if (!draft) return;
+
+      if (!isAuthenticated) {
+        setShowLogin(true);
+        setCommentErrorByPost((prev) => ({
+          ...prev,
+          [postId]: "برای ثبت کامنت باید لاگین کنید.",
+        }));
+        return;
+      }
+
+      const optimisticComment = makeOptimisticComment(draft);
+
+      setCommentErrorByPost((prev) => ({
+        ...prev,
+        [postId]: "",
+      }));
+      setCommentSubmittingByPost((prev) => ({
+        ...prev,
+        [postId]: true,
+      }));
+
+      setCommentsByPost((prev) => {
+        const prevItems = prev[postId]?.items || [];
+        return {
+          ...prev,
+          [postId]: {
+            items: [optimisticComment, ...prevItems],
+          },
+        };
+      });
+
+      setNewCommentByPost((prev) => ({
+        ...prev,
+        [postId]: "",
+      }));
+
+      try {
+        await api.createComment({ postId, text: draft, parentId: null });
+        await loadComments(postId);
+      } catch (err) {
+        setCommentsByPost((prev) => {
+          const prevItems = prev[postId]?.items || [];
+          return {
+            ...prev,
+            [postId]: {
+              items: prevItems.filter((item) => item.id !== optimisticComment.id),
+            },
+          };
+        });
+
+        if (err?.status === 401) {
+          setShowLogin(true);
+          setCommentErrorByPost((prev) => ({
+            ...prev,
+            [postId]: "Session منقضی شده. دوباره لاگین کنید.",
+          }));
+        } else {
+          setCommentErrorByPost((prev) => ({
+            ...prev,
+            [postId]: err?.message || "ثبت کامنت ناموفق بود.",
+          }));
+        }
+      } finally {
+        setCommentSubmittingByPost((prev) => ({
+          ...prev,
+          [postId]: false,
+        }));
+      }
+    },
+    [isAuthenticated, loadComments, newCommentByPost]
+  );
+
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
@@ -201,6 +298,9 @@ function FeedView() {
       {posts.map((post) => {
         const commentsState = commentsByPost[post.id] || {};
         const commentCount = countCommentsTree(commentsState.items || []);
+        const commentDraft = newCommentByPost[post.id] || "";
+        const submittingComment = Boolean(commentSubmittingByPost[post.id]);
+        const commentError = commentErrorByPost[post.id] || "";
 
         return (
           <div
@@ -229,6 +329,33 @@ function FeedView() {
               )}
 
             <h4>Comments ({commentCount})</h4>
+
+            <div style={{ marginBottom: 12 }}>
+              <textarea
+                value={commentDraft}
+                onChange={(event) =>
+                  handleCommentInputChange(post.id, event.target.value)
+                }
+                placeholder="Write a comment..."
+                rows={3}
+                style={{
+                  width: "100%",
+                  marginBottom: 8,
+                  padding: 8,
+                  border: "1px solid #ccc",
+                  borderRadius: 6,
+                }}
+              />
+              <button
+                onClick={() => handleAddComment(post.id)}
+                disabled={submittingComment || !commentDraft.trim()}
+              >
+                {submittingComment ? "Posting..." : "Add Comment"}
+              </button>
+              {commentError ? (
+                <p style={{ color: "red", marginTop: 8 }}>{commentError}</p>
+              ) : null}
+            </div>
 
             {commentsState.items?.length > 0 ? (
               <ul>

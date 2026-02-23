@@ -3,6 +3,35 @@ import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/login";
 import { api, API_BASE_URL } from "./services/api";
 
+const styles = {
+  page: { padding: 40, background: "linear-gradient(180deg,#f8fbff 0%,#eef4fb 100%)", minHeight: "100vh" },
+  card: {
+    marginBottom: 28,
+    padding: 20,
+    border: "1px solid #d6e4f0",
+    borderRadius: 14,
+    background: "#fff",
+    boxShadow: "0 8px 20px rgba(13,45,73,0.08)",
+  },
+  ghostButton: {
+    border: "1px solid #95b9d7",
+    borderRadius: 8,
+    padding: "4px 9px",
+    background: "#f3f9ff",
+    color: "#1f4f75",
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  replyBox: {
+    marginTop: 6,
+    marginBottom: 10,
+    padding: 10,
+    border: "1px solid #d8e8f4",
+    borderRadius: 10,
+    background: "#f7fbff",
+  },
+};
+
 function formatDate(value) {
   if (!value) return "";
   const date = new Date(value);
@@ -84,6 +113,61 @@ function makeOptimisticComment(text) {
   };
 }
 
+function upsertChildren(comment, children) {
+  if (Array.isArray(comment?.replies) && !Array.isArray(comment?.children)) {
+    return { ...comment, replies: children };
+  }
+  return { ...comment, children };
+}
+
+function insertReplyIntoTree(nodes, parentId, reply) {
+  if (!Array.isArray(nodes)) return nodes;
+
+  return nodes.map((node) => {
+    const nodeId = getCommentId(node);
+    const children = getCommentChildren(node);
+
+    if (nodeId === parentId) {
+      return upsertChildren(node, [reply, ...children]);
+    }
+
+    if (children.length === 0) return node;
+    return upsertChildren(node, insertReplyIntoTree(children, parentId, reply));
+  });
+}
+
+function removeCommentFromTree(nodes, targetId) {
+  if (!Array.isArray(nodes)) return nodes;
+
+  return nodes
+    .filter((node) => getCommentId(node) !== targetId)
+    .map((node) => {
+      const children = getCommentChildren(node);
+      if (children.length === 0) return node;
+      return upsertChildren(node, removeCommentFromTree(children, targetId));
+    });
+}
+
+function updateCommentInTree(nodes, targetId, updater) {
+  if (!Array.isArray(nodes)) return nodes;
+
+  return nodes.map((node) => {
+    const nodeId = getCommentId(node);
+    let nextNode = node;
+
+    if (nodeId === targetId) {
+      nextNode = updater(node);
+    }
+
+    const children = getCommentChildren(nextNode);
+    if (children.length === 0) return nextNode;
+    return upsertChildren(
+      nextNode,
+      updateCommentInTree(children, targetId, updater)
+    );
+  });
+}
+
 function countCommentsTree(nodes) {
   if (!Array.isArray(nodes)) return 0;
 
@@ -95,29 +179,116 @@ function countCommentsTree(nodes) {
   return total;
 }
 
-function CommentNode({ comment, depth = 0 }) {
+function CommentNode({
+  postId,
+  comment,
+  depth = 0,
+  expandedCommentsById,
+  activeReplyFormKey,
+  replyTextById,
+  replySubmittingById,
+  replyErrorById,
+  onToggleReplies,
+  onToggleReplyForm,
+  onReplyTextChange,
+  onSubmitReply,
+}) {
   const children = getCommentChildren(comment);
   const author = getCommentAuthor(comment);
+  const commentId = getCommentId(comment);
+  const nodeKey = `${postId}:${commentId}`;
+  const isExpanded = Boolean(expandedCommentsById[nodeKey]);
+  const isReplyFormOpen = activeReplyFormKey === nodeKey;
+  const replyDraft = replyTextById[nodeKey] || "";
+  const replySubmitting = Boolean(replySubmittingById[nodeKey]);
+  const replyError = replyErrorById[nodeKey] || "";
+  const canReply = commentId !== null && commentId !== undefined;
 
   return (
-    <li style={{ marginLeft: depth * 16 }}>
+    <li
+      style={{
+        marginLeft: depth * 16,
+        padding: "10px 10px 8px",
+        border: "1px solid #e0ebf4",
+        borderRadius: 10,
+        background: "#fbfdff",
+        marginBottom: 8,
+      }}
+    >
       <strong>@{author}</strong>{" "}
       <small style={{ color: "#666" }}>
         {formatDate(getCommentTime(comment))}
       </small>
       <p>{getCommentText(comment)}</p>
 
-      {children.length > 0 && (
+      <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+        {canReply ? (
+          <button
+            type="button"
+            onClick={() => onToggleReplyForm(nodeKey)}
+            style={styles.ghostButton}
+          >
+            {isReplyFormOpen ? "Cancel" : "Reply"}
+          </button>
+        ) : null}
+
+        {children.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => onToggleReplies(nodeKey)}
+            style={styles.ghostButton}
+          >
+            {isExpanded ? "Hide replies" : `Show replies (${children.length})`}
+          </button>
+        ) : null}
+      </div>
+
+      {isReplyFormOpen ? (
+        <div style={styles.replyBox}>
+          <textarea
+            value={replyDraft}
+            onChange={(event) => onReplyTextChange(nodeKey, event.target.value)}
+            placeholder="Write a reply..."
+            rows={2}
+            style={{ width: "100%", marginBottom: 8, padding: 8, border: "1px solid #bfd3e5", borderRadius: 8 }}
+          />
+          <button
+            type="button"
+            onClick={() => onSubmitReply(postId, commentId, nodeKey)}
+            disabled={replySubmitting || !replyDraft.trim()}
+            style={styles.ghostButton}
+          >
+            {replySubmitting ? "Posting..." : "Post Reply"}
+          </button>
+          {replyError ? (
+            <p style={{ color: "red", marginTop: 6, marginBottom: 0 }}>
+              {replyError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {children.length > 0 && isExpanded ? (
         <ul>
           {children.map((child, index) => (
             <CommentNode
               key={`${getCommentId(child) || "child"}-${index}`}
+              postId={postId}
               comment={child}
               depth={depth + 1}
+              expandedCommentsById={expandedCommentsById}
+              activeReplyFormKey={activeReplyFormKey}
+              replyTextById={replyTextById}
+              replySubmittingById={replySubmittingById}
+              replyErrorById={replyErrorById}
+              onToggleReplies={onToggleReplies}
+              onToggleReplyForm={onToggleReplyForm}
+              onReplyTextChange={onReplyTextChange}
+              onSubmitReply={onSubmitReply}
             />
           ))}
         </ul>
-      )}
+      ) : null}
     </li>
   );
 }
@@ -125,6 +296,7 @@ function CommentNode({ comment, depth = 0 }) {
 function FeedView() {
   const { isAuthenticated, logout } = useAuth();
   const limit = 10;
+
   const [page, setPage] = useState(1);
   const [posts, setPosts] = useState([]);
   const [total, setTotal] = useState(0);
@@ -132,9 +304,16 @@ function FeedView() {
   const [loading, setLoading] = useState(false);
   const [commentsByPost, setCommentsByPost] = useState({});
   const [showLogin, setShowLogin] = useState(false);
+
   const [newCommentByPost, setNewCommentByPost] = useState({});
   const [commentSubmittingByPost, setCommentSubmittingByPost] = useState({});
   const [commentErrorByPost, setCommentErrorByPost] = useState({});
+
+  const [expandedCommentsById, setExpandedCommentsById] = useState({});
+  const [activeReplyFormKey, setActiveReplyFormKey] = useState(null);
+  const [replyTextById, setReplyTextById] = useState({});
+  const [replySubmittingById, setReplySubmittingById] = useState({});
+  const [replyErrorById, setReplyErrorById] = useState({});
 
   const visibleCommentsTotal = useMemo(() => {
     return Object.values(commentsByPost).reduce((sum, state) => {
@@ -153,10 +332,6 @@ function FeedView() {
       setPosts((prev) => appendUniquePosts(prev, incomingPosts));
       setTotal(Number(response?.total || 0));
     } catch (err) {
-      if (err?.status === 401) {
-        setError("Unauthorized - please login again.");
-        return;
-      }
       setError(err?.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -173,17 +348,13 @@ function FeedView() {
       }));
     } catch (err) {
       if (err?.status !== 401) {
-        // Keep feed resilient even if one post comments request fails.
         console.error("Failed loading comments", err);
       }
     }
   }, []);
 
   const handleCommentInputChange = useCallback((postId, value) => {
-    setNewCommentByPost((prev) => ({
-      ...prev,
-      [postId]: value,
-    }));
+    setNewCommentByPost((prev) => ({ ...prev, [postId]: value }));
   }, []);
 
   const handleAddComment = useCallback(
@@ -195,36 +366,23 @@ function FeedView() {
         setShowLogin(true);
         setCommentErrorByPost((prev) => ({
           ...prev,
-          [postId]: "برای ثبت کامنت باید لاگین کنید.",
+          [postId]: "You need to login to add a comment.",
         }));
         return;
       }
 
       const optimisticComment = makeOptimisticComment(draft);
 
-      setCommentErrorByPost((prev) => ({
-        ...prev,
-        [postId]: "",
-      }));
-      setCommentSubmittingByPost((prev) => ({
-        ...prev,
-        [postId]: true,
-      }));
-
+      setCommentErrorByPost((prev) => ({ ...prev, [postId]: "" }));
+      setCommentSubmittingByPost((prev) => ({ ...prev, [postId]: true }));
       setCommentsByPost((prev) => {
         const prevItems = prev[postId]?.items || [];
         return {
           ...prev,
-          [postId]: {
-            items: [optimisticComment, ...prevItems],
-          },
+          [postId]: { items: [optimisticComment, ...prevItems] },
         };
       });
-
-      setNewCommentByPost((prev) => ({
-        ...prev,
-        [postId]: "",
-      }));
+      setNewCommentByPost((prev) => ({ ...prev, [postId]: "" }));
 
       try {
         await api.createComment({ postId, text: draft, parentId: null });
@@ -244,22 +402,137 @@ function FeedView() {
           setShowLogin(true);
           setCommentErrorByPost((prev) => ({
             ...prev,
-            [postId]: "Session منقضی شده. دوباره لاگین کنید.",
+            [postId]: "Session expired. Please login again.",
           }));
         } else {
           setCommentErrorByPost((prev) => ({
             ...prev,
-            [postId]: err?.message || "ثبت کامنت ناموفق بود.",
+            [postId]: err?.message || "Failed to add comment.",
           }));
         }
       } finally {
-        setCommentSubmittingByPost((prev) => ({
-          ...prev,
-          [postId]: false,
-        }));
+        setCommentSubmittingByPost((prev) => ({ ...prev, [postId]: false }));
       }
     },
     [isAuthenticated, loadComments, newCommentByPost]
+  );
+
+  const toggleReplies = useCallback((nodeKey) => {
+    setExpandedCommentsById((prev) => ({
+      ...prev,
+      [nodeKey]: !prev[nodeKey],
+    }));
+  }, []);
+
+  const toggleReplyForm = useCallback((nodeKey) => {
+    setActiveReplyFormKey((prev) => (prev === nodeKey ? null : nodeKey));
+    setReplyErrorById((prev) => ({
+      ...prev,
+      [nodeKey]: "",
+    }));
+  }, []);
+
+  const handleReplyTextChange = useCallback((nodeKey, value) => {
+    setReplyTextById((prev) => ({
+      ...prev,
+      [nodeKey]: value,
+    }));
+  }, []);
+
+  const handleSubmitReply = useCallback(
+    async (postId, parentId, nodeKey) => {
+      const draft = (replyTextById[nodeKey] || "").trim();
+      if (!draft) return;
+
+      if (!isAuthenticated) {
+        setShowLogin(true);
+        setReplyErrorById((prev) => ({
+          ...prev,
+          [nodeKey]: "You need to login to reply.",
+        }));
+        return;
+      }
+
+      const optimisticReply = makeOptimisticComment(draft);
+
+      setReplyErrorById((prev) => ({
+        ...prev,
+        [nodeKey]: "",
+      }));
+      setReplySubmittingById((prev) => ({
+        ...prev,
+        [nodeKey]: true,
+      }));
+
+      setCommentsByPost((prev) => {
+        const items = prev[postId]?.items || [];
+        return {
+          ...prev,
+          [postId]: {
+            items: insertReplyIntoTree(items, parentId, optimisticReply),
+          },
+        };
+      });
+
+      setExpandedCommentsById((prev) => ({
+        ...prev,
+        [nodeKey]: true,
+      }));
+      setReplyTextById((prev) => ({
+        ...prev,
+        [nodeKey]: "",
+      }));
+
+      try {
+        const response = await api.createComment({ postId, text: draft, parentId });
+        const realId = response?.id ?? response?.comment_id ?? null;
+
+        setCommentsByPost((prev) => {
+          const items = prev[postId]?.items || [];
+          return {
+            ...prev,
+            [postId]: {
+              items: updateCommentInTree(items, optimisticReply.id, (node) => ({
+                ...node,
+                id: realId || node.id,
+                optimistic: false,
+              })),
+            },
+          };
+        });
+
+        setActiveReplyFormKey((prev) => (prev === nodeKey ? null : prev));
+      } catch (err) {
+        setCommentsByPost((prev) => {
+          const items = prev[postId]?.items || [];
+          return {
+            ...prev,
+            [postId]: {
+              items: removeCommentFromTree(items, optimisticReply.id),
+            },
+          };
+        });
+
+        if (err?.status === 401) {
+          setShowLogin(true);
+          setReplyErrorById((prev) => ({
+            ...prev,
+            [nodeKey]: "Session expired. Please login again.",
+          }));
+        } else {
+          setReplyErrorById((prev) => ({
+            ...prev,
+            [nodeKey]: err?.message || "Failed to post reply.",
+          }));
+        }
+      } finally {
+        setReplySubmittingById((prev) => ({
+          ...prev,
+          [nodeKey]: false,
+        }));
+      }
+    },
+    [isAuthenticated, replyTextById]
   );
 
   useEffect(() => {
@@ -274,8 +547,21 @@ function FeedView() {
     });
   }, [posts, commentsByPost, loadComments]);
 
+  useEffect(() => {
+    if (!showLogin) return undefined;
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setShowLogin(false);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showLogin]);
+
   return (
-    <div style={{ padding: 40 }}>
+    <div style={styles.page}>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <h1 style={{ marginRight: "auto" }}>DinoSocial Live</h1>
         {isAuthenticated ? (
@@ -305,12 +591,7 @@ function FeedView() {
         return (
           <div
             key={post.id}
-            style={{
-              marginBottom: 40,
-              padding: 20,
-              border: "1px solid #ddd",
-              borderRadius: 8,
-            }}
+            style={styles.card}
           >
             <h3>Author #{post.author}</h3>
             <p>{post.text}</p>
@@ -342,8 +623,9 @@ function FeedView() {
                   width: "100%",
                   marginBottom: 8,
                   padding: 8,
-                  border: "1px solid #ccc",
-                  borderRadius: 6,
+                  border: "1px solid #bfd3e5",
+                  borderRadius: 8,
+                  background: "#f8fbff",
                 }}
               />
               <button
@@ -362,7 +644,17 @@ function FeedView() {
                 {commentsState.items.map((comment, i) => (
                   <CommentNode
                     key={`${getCommentId(comment)}-${i}`}
+                    postId={post.id}
                     comment={comment}
+                    expandedCommentsById={expandedCommentsById}
+                    activeReplyFormKey={activeReplyFormKey}
+                    replyTextById={replyTextById}
+                    replySubmittingById={replySubmittingById}
+                    replyErrorById={replyErrorById}
+                    onToggleReplies={toggleReplies}
+                    onToggleReplyForm={toggleReplyForm}
+                    onReplyTextChange={handleReplyTextChange}
+                    onSubmitReply={handleSubmitReply}
                   />
                 ))}
               </ul>
@@ -379,19 +671,22 @@ function FeedView() {
 
       {showLogin && !isAuthenticated ? (
         <div
+          onClick={() => setShowLogin(false)}
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.3)",
+            background: "rgba(8, 22, 39, 0.45)",
             display: "grid",
             placeItems: "center",
             padding: 20,
           }}
         >
-          <LoginPage
-            onSuccess={() => setShowLogin(false)}
-            onCancel={() => setShowLogin(false)}
-          />
+          <div onClick={(event) => event.stopPropagation()}>
+            <LoginPage
+              onSuccess={() => setShowLogin(false)}
+              onCancel={() => setShowLogin(false)}
+            />
+          </div>
         </div>
       ) : null}
     </div>

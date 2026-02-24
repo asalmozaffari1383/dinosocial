@@ -2,9 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { api } from "../services/api";
 
 const AuthContext = createContext();
+const USERNAME_KEY = "dinosocial_username";
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(api.hasSession());
+  const [username, setUsername] = useState(() => localStorage.getItem(USERNAME_KEY) || "");
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
@@ -14,6 +16,8 @@ export function AuthProvider({ children }) {
       const hasSession = await api.bootstrapAuth();
       if (!hasSession) {
         setIsAuthenticated(false);
+        setUsername("");
+        localStorage.removeItem(USERNAME_KEY);
         return false;
       }
 
@@ -22,6 +26,8 @@ export function AuthProvider({ children }) {
       return true;
     } catch {
       setIsAuthenticated(false);
+      setUsername("");
+      localStorage.removeItem(USERNAME_KEY);
       return false;
     } finally {
       setLoading(false);
@@ -35,6 +41,8 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     api.setUnauthorizedHandler(() => {
       setIsAuthenticated(false);
+      setUsername("");
+      localStorage.removeItem(USERNAME_KEY);
     });
 
     return () => {
@@ -45,6 +53,8 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     await api.login({ username, password });
     setIsAuthenticated(true);
+    setUsername(username);
+    localStorage.setItem(USERNAME_KEY, username);
   };
 
   const logout = async () => {
@@ -54,12 +64,15 @@ export function AuthProvider({ children }) {
       // Ignore server-side logout failures and force local logout.
     }
     setIsAuthenticated(false);
+    setUsername("");
+    localStorage.removeItem(USERNAME_KEY);
   };
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
+        username,
         login,
         logout,
         checkAuth,

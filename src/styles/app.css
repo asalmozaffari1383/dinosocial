@@ -401,3 +401,288 @@ button:disabled {
     align-items: flex-start;
   }
 }
+
+/* Twitter-like 3-column layout (light mode) */
+.tw-app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 320px;
+  gap: 16px;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 14px;
+  color: #17344e;
+}
+
+.tw-sidebar {
+  position: sticky;
+  top: 14px;
+  height: calc(100vh - 28px);
+  border: 1px solid #d5e5f2;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tw-logo {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #2f88c5;
+}
+
+.tw-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.tw-nav-item {
+  border: 1px solid transparent;
+  background: transparent;
+  color: #244b6b;
+  border-radius: 12px;
+  text-align: left;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+.tw-nav-item:hover {
+  border-color: #c6ddf0;
+  background: #eaf5ff;
+}
+
+.tw-session-box {
+  margin-top: auto;
+  border-top: 1px solid #dce9f4;
+  padding-top: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.tw-session-btn {
+  width: 100%;
+}
+
+.tw-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tw-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: #2a5f87;
+  background: #e6f3ff;
+  border: 1px solid #c5def0;
+}
+
+.tw-profile-meta {
+  display: grid;
+  line-height: 1.1;
+}
+
+.tw-profile-meta strong {
+  font-size: 0.92rem;
+  color: #1f4566;
+}
+
+.tw-profile-meta small {
+  color: #64829e;
+  font-size: 0.78rem;
+}
+
+.tw-feed-column {
+  border: 1px solid #d5e5f2;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  padding: 14px;
+}
+
+.tw-feed-header {
+  border-bottom: 1px solid #deebf6;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+}
+
+.tw-feed-header h1 {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+}
+
+.tw-feed-header p {
+  margin: 0;
+  color: #5d7892;
+}
+
+.tw-metrics {
+  color: #5f7f99;
+  font-size: 0.9rem;
+  margin-bottom: 14px;
+}
+
+.tw-post-card {
+  border: 1px solid #d9e8f4;
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(43, 91, 128, 0.08);
+}
+
+.tw-post-card h3 {
+  margin: 0 0 8px;
+}
+
+.tw-post-card p {
+  color: #1f405d;
+}
+
+.tw-post-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mini-action-btn {
+  border: 1px solid #c4dceb;
+  border-radius: 8px;
+  padding: 4px 9px;
+  background: #f0f8ff;
+  color: #234d70;
+  font-weight: 700;
+}
+
+.mini-action-btn:hover {
+  background: #e4f2fe;
+}
+
+.reply-editor {
+  margin-top: 6px;
+  margin-bottom: 10px;
+  padding: 10px;
+  border: 1px solid #d4e6f3;
+  border-radius: 10px;
+  background: #f5fbff;
+}
+
+.tw-right-panel {
+  position: sticky;
+  top: 14px;
+  height: calc(100vh - 28px);
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.tw-panel-card {
+  border: 1px solid #d5e5f2;
+  border-radius: 18px;
+  background: #ffffff;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(43, 91, 128, 0.08);
+}
+
+.tw-panel-card h3 {
+  margin: 0 0 10px;
+}
+
+.tw-panel-card:last-child {
+  min-height: calc(100vh - 140px);
+}
+
+.tw-search {
+  width: 100%;
+  border-radius: 999px;
+  border: 1px solid #c7dff0;
+  background: #f3f9ff;
+  color: #17344e;
+  padding: 10px 14px;
+}
+
+.tw-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  color: #2b5375;
+}
+
+@media (max-width: 1200px) {
+  .tw-app-shell {
+    grid-template-columns: 180px minmax(0, 1fr) 250px;
+  }
+
+  .tw-nav-item {
+    padding: 9px 10px;
+    font-size: 0.84rem;
+  }
+}
+
+@media (max-width: 980px) {
+  .tw-app-shell {
+    grid-template-columns: 170px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .tw-right-panel {
+    position: static;
+    height: auto;
+    grid-column: 2;
+  }
+
+  .tw-sidebar {
+    padding: 12px 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .tw-app-shell {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .tw-sidebar {
+    position: static;
+    height: auto;
+    grid-template-rows: auto;
+    gap: 10px;
+    border-radius: 14px;
+  }
+
+  .tw-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tw-nav-item {
+    text-align: center;
+    padding: 8px 6px;
+    font-size: 0.8rem;
+  }
+
+  .tw-session-box {
+    align-self: auto;
+  }
+
+  .tw-feed-column {
+    border-radius: 14px;
+    padding: 10px;
+  }
+
+  .tw-post-card {
+    border-radius: 12px;
+    padding: 10px;
+  }
+
+  .tw-right-panel {
+    grid-column: auto;
+  }
+}

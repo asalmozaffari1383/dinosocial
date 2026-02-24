@@ -3,34 +3,8 @@ import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/login";
 import { api, API_BASE_URL } from "./services/api";
 
-const styles = {
-  page: { padding: 40, background: "linear-gradient(180deg,#f8fbff 0%,#eef4fb 100%)", minHeight: "100vh" },
-  card: {
-    marginBottom: 28,
-    padding: 20,
-    border: "1px solid #d6e4f0",
-    borderRadius: 14,
-    background: "#fff",
-    boxShadow: "0 8px 20px rgba(13,45,73,0.08)",
-  },
-  ghostButton: {
-    border: "1px solid #95b9d7",
-    borderRadius: 8,
-    padding: "4px 9px",
-    background: "#f3f9ff",
-    color: "#1f4f75",
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  replyBox: {
-    marginTop: 6,
-    marginBottom: 10,
-    padding: 10,
-    border: "1px solid #d8e8f4",
-    borderRadius: 10,
-    background: "#f7fbff",
-  },
-};
+const SIDEBAR_ITEMS = ["Home", "Notifications", "Messages", "Profile"];
+const SUGGESTED_USERS = ["@dino_dev", "@frontend_daily", "@react_ninja"];
 
 function formatDate(value) {
   if (!value) return "";
@@ -226,7 +200,7 @@ function CommentNode({
           <button
             type="button"
             onClick={() => onToggleReplyForm(nodeKey)}
-            style={styles.ghostButton}
+            className="mini-action-btn"
           >
             {isReplyFormOpen ? "Cancel" : "Reply"}
           </button>
@@ -236,7 +210,7 @@ function CommentNode({
           <button
             type="button"
             onClick={() => onToggleReplies(nodeKey)}
-            style={styles.ghostButton}
+            className="mini-action-btn"
           >
             {isExpanded ? "Hide replies" : `Show replies (${children.length})`}
           </button>
@@ -244,19 +218,27 @@ function CommentNode({
       </div>
 
       {isReplyFormOpen ? (
-        <div style={styles.replyBox}>
+        <div className="reply-editor">
           <textarea
             value={replyDraft}
             onChange={(event) => onReplyTextChange(nodeKey, event.target.value)}
             placeholder="Write a reply..."
             rows={2}
-            style={{ width: "100%", marginBottom: 8, padding: 8, border: "1px solid #bfd3e5", borderRadius: 8 }}
+            style={{
+              width: "100%",
+              marginBottom: 8,
+              padding: 8,
+              border: "1px solid #c7dff0",
+              borderRadius: 8,
+              background: "#ffffff",
+              color: "#17344e",
+            }}
           />
           <button
             type="button"
             onClick={() => onSubmitReply(postId, commentId, nodeKey)}
             disabled={replySubmitting || !replyDraft.trim()}
-            style={styles.ghostButton}
+            className="mini-action-btn"
           >
             {replySubmitting ? "Posting..." : "Post Reply"}
           </button>
@@ -294,7 +276,7 @@ function CommentNode({
 }
 
 function FeedView() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, username, logout } = useAuth();
   const limit = 10;
 
   const [page, setPage] = useState(1);
@@ -560,114 +542,160 @@ function FeedView() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [showLogin]);
 
+  const displayName = isAuthenticated ? username || "User" : "Guest";
+  const avatarChar = displayName.charAt(0).toUpperCase();
+
   return (
-    <div style={styles.page}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <h1 style={{ marginRight: "auto" }}>DinoSocial Live</h1>
-        {isAuthenticated ? (
-          <button onClick={logout}>Logout</button>
-        ) : (
-          <button onClick={() => setShowLogin(true)}>Login</button>
-        )}
-      </div>
+    <div className="tw-app-shell">
+      <aside className="tw-sidebar">
+        <div className="tw-logo">Dino</div>
+        <nav className="tw-nav">
+          {SIDEBAR_ITEMS.map((item) => (
+            <button key={item} className="tw-nav-item" type="button">
+              {item}
+            </button>
+          ))}
+        </nav>
 
-      <p style={{ color: "#777" }}>Source: {API_BASE_URL}</p>
-
-      <p>
-        Loaded posts: {posts.length} | Total: {total} | Visible comments:{" "}
-        {visibleCommentsTotal}
-      </p>
-
-      {loading && <p>Loading...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      {posts.map((post) => {
-        const commentsState = commentsByPost[post.id] || {};
-        const commentCount = countCommentsTree(commentsState.items || []);
-        const commentDraft = newCommentByPost[post.id] || "";
-        const submittingComment = Boolean(commentSubmittingByPost[post.id]);
-        const commentError = commentErrorByPost[post.id] || "";
-
-        return (
-          <div
-            key={post.id}
-            style={styles.card}
-          >
-            <h3>Author #{post.author}</h3>
-            <p>{post.text}</p>
-
-            {Array.isArray(post.media) &&
-              post.media.map((item) =>
-                isImage(item) ? (
-                  <img
-                    key={item.id}
-                    src={item.url}
-                    alt=""
-                    width="200"
-                    style={{ display: "block", marginBottom: 10 }}
-                  />
-                ) : null
-              )}
-
-            <h4>Comments ({commentCount})</h4>
-
-            <div style={{ marginBottom: 12 }}>
-              <textarea
-                value={commentDraft}
-                onChange={(event) =>
-                  handleCommentInputChange(post.id, event.target.value)
-                }
-                placeholder="Write a comment..."
-                rows={3}
-                style={{
-                  width: "100%",
-                  marginBottom: 8,
-                  padding: 8,
-                  border: "1px solid #bfd3e5",
-                  borderRadius: 8,
-                  background: "#f8fbff",
-                }}
-              />
-              <button
-                onClick={() => handleAddComment(post.id)}
-                disabled={submittingComment || !commentDraft.trim()}
-              >
-                {submittingComment ? "Posting..." : "Add Comment"}
-              </button>
-              {commentError ? (
-                <p style={{ color: "red", marginTop: 8 }}>{commentError}</p>
-              ) : null}
+        <div className="tw-session-box">
+          <div className="tw-profile-row">
+            <div className="tw-avatar">{avatarChar}</div>
+            <div className="tw-profile-meta">
+              <strong>{displayName}</strong>
+              <small>{isAuthenticated ? "Online" : "Not signed in"}</small>
             </div>
-
-            {commentsState.items?.length > 0 ? (
-              <ul>
-                {commentsState.items.map((comment, i) => (
-                  <CommentNode
-                    key={`${getCommentId(comment)}-${i}`}
-                    postId={post.id}
-                    comment={comment}
-                    expandedCommentsById={expandedCommentsById}
-                    activeReplyFormKey={activeReplyFormKey}
-                    replyTextById={replyTextById}
-                    replySubmittingById={replySubmittingById}
-                    replyErrorById={replyErrorById}
-                    onToggleReplies={toggleReplies}
-                    onToggleReplyForm={toggleReplyForm}
-                    onReplyTextChange={handleReplyTextChange}
-                    onSubmitReply={handleSubmitReply}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <p>No comments</p>
-            )}
           </div>
-        );
-      })}
+          {isAuthenticated ? (
+            <button onClick={logout} className="tw-session-btn" type="button">
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowLogin(true)}
+              className="tw-session-btn"
+              type="button"
+            >
+              Login
+            </button>
+          )}
+        </div>
+      </aside>
 
-      {posts.length < total && (
-        <button onClick={() => setPage((prev) => prev + 1)}>Load More</button>
-      )}
+      <main className="tw-feed-column">
+        <header className="tw-feed-header">
+          <h1>DinoSocial Live</h1>
+          <p>Source: {API_BASE_URL}</p>
+        </header>
+
+        <div className="tw-metrics">
+          Loaded posts: {posts.length} | Total: {total} | Visible comments:{" "}
+          {visibleCommentsTotal}
+        </div>
+
+        {loading && <p>Loading...</p>}
+        {error && <p style={{ color: "#c73939" }}>{error}</p>}
+
+        {posts.map((post) => {
+          const commentsState = commentsByPost[post.id] || {};
+          const commentCount = countCommentsTree(commentsState.items || []);
+          const commentDraft = newCommentByPost[post.id] || "";
+          const submittingComment = Boolean(commentSubmittingByPost[post.id]);
+          const commentError = commentErrorByPost[post.id] || "";
+
+          return (
+            <article key={post.id} className="tw-post-card">
+              <h3>Author #{post.author}</h3>
+              <p>{post.text}</p>
+
+              {Array.isArray(post.media) &&
+                post.media.map((item) =>
+                  isImage(item) ? (
+                    <img
+                      key={item.id}
+                      src={item.url}
+                      alt=""
+                      width="200"
+                      style={{ display: "block", marginBottom: 10 }}
+                    />
+                  ) : null
+                )}
+
+              <h4>Comments ({commentCount})</h4>
+
+              <div style={{ marginBottom: 12 }}>
+                <textarea
+                  value={commentDraft}
+                  onChange={(event) =>
+                    handleCommentInputChange(post.id, event.target.value)
+                  }
+                  placeholder="Write a comment..."
+                  rows={3}
+                  style={{
+                    width: "100%",
+                    marginBottom: 8,
+                    padding: 8,
+                    border: "1px solid #c7dff0",
+                    borderRadius: 8,
+                    background: "#ffffff",
+                    color: "#17344e",
+                  }}
+                />
+                <button
+                  onClick={() => handleAddComment(post.id)}
+                  disabled={submittingComment || !commentDraft.trim()}
+                >
+                  {submittingComment ? "Posting..." : "Add Comment"}
+                </button>
+                {commentError ? (
+                  <p style={{ color: "#c73939", marginTop: 8 }}>{commentError}</p>
+                ) : null}
+              </div>
+
+              {commentsState.items?.length > 0 ? (
+                <ul>
+                  {commentsState.items.map((comment, i) => (
+                    <CommentNode
+                      key={`${getCommentId(comment)}-${i}`}
+                      postId={post.id}
+                      comment={comment}
+                      expandedCommentsById={expandedCommentsById}
+                      activeReplyFormKey={activeReplyFormKey}
+                      replyTextById={replyTextById}
+                      replySubmittingById={replySubmittingById}
+                      replyErrorById={replyErrorById}
+                      onToggleReplies={toggleReplies}
+                      onToggleReplyForm={toggleReplyForm}
+                      onReplyTextChange={handleReplyTextChange}
+                      onSubmitReply={handleSubmitReply}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <p>No comments</p>
+              )}
+            </article>
+          );
+        })}
+
+        {posts.length < total && (
+          <button onClick={() => setPage((prev) => prev + 1)}>Load More</button>
+        )}
+      </main>
+
+      <aside className="tw-right-panel">
+        <div className="tw-panel-card">
+          <input className="tw-search" placeholder="Search" />
+        </div>
+
+        <div className="tw-panel-card">
+          <h3>Who to follow</h3>
+          <ul className="tw-list">
+            {SUGGESTED_USERS.map((user) => (
+              <li key={user}>{user}</li>
+            ))}
+          </ul>
+        </div>
+      </aside>
 
       {showLogin && !isAuthenticated ? (
         <div
@@ -675,7 +703,7 @@ function FeedView() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(8, 22, 39, 0.45)",
+            background: "rgba(54, 93, 126, 0.25)",
             display: "grid",
             placeItems: "center",
             padding: 20,

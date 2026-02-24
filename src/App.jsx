@@ -3,7 +3,12 @@ import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/login";
 import { api, API_BASE_URL } from "./services/api";
 
-const SIDEBAR_ITEMS = ["Home", "Notifications", "Messages", "Profile"];
+const SIDEBAR_ITEMS = [
+  { label: "Home", icon: "home" },
+  { label: "Notifications", icon: "bell" },
+  { label: "Messages", icon: "mail" },
+  { label: "Profile", icon: "user" },
+];
 const SUGGESTED_USERS = ["@dino_dev", "@frontend_daily", "@react_ninja"];
 
 function formatDate(value) {
@@ -544,6 +549,19 @@ function FeedView() {
 
   const displayName = isAuthenticated ? username || "User" : "Guest";
   const avatarChar = displayName.charAt(0).toUpperCase();
+  const mobileBarItems = [
+    { key: "home", label: "Home", icon: "home" },
+    { key: "notifications", label: "Notifications", icon: "bell" },
+    { key: "messages", label: "Messages", icon: "mail" },
+    { key: "profile", label: "Profile", icon: "user" },
+    { key: "search", label: "Search", icon: "search" },
+    {
+      key: "auth",
+      label: isAuthenticated ? "Logout" : "Login",
+      icon: isAuthenticated ? "logout" : "login",
+      onClick: () => (isAuthenticated ? logout() : setShowLogin(true)),
+    },
+  ];
 
   return (
     <div className="tw-app-shell">
@@ -551,8 +569,11 @@ function FeedView() {
         <div className="tw-logo">Dino</div>
         <nav className="tw-nav">
           {SIDEBAR_ITEMS.map((item) => (
-            <button key={item} className="tw-nav-item" type="button">
-              {item}
+            <button key={item.label} className="tw-nav-item" type="button">
+              <span className="tw-nav-icon" aria-hidden="true">
+                <NavIcon name={item.icon} />
+              </span>
+              <span className="tw-nav-label">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -687,7 +708,7 @@ function FeedView() {
           <input className="tw-search" placeholder="Search" />
         </div>
 
-        <div className="tw-panel-card">
+        <div className="tw-panel-card tw-who-card">
           <h3>Who to follow</h3>
           <ul className="tw-list">
             {SUGGESTED_USERS.map((user) => (
@@ -717,8 +738,80 @@ function FeedView() {
           </div>
         </div>
       ) : null}
+
+      <nav className="tw-mobile-bar" aria-label="Mobile navigation">
+        {mobileBarItems.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className="tw-mobile-btn"
+            onClick={item.onClick}
+          >
+            <span className="tw-mobile-icon" aria-hidden="true">
+              <NavIcon name={item.icon} />
+            </span>
+            <span className="tw-mobile-label">{item.label}</span>
+          </button>
+        ))}
+      </nav>
     </div>
   );
+}
+
+function NavIcon({ name }) {
+  switch (name) {
+    case "home":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M3 10.5 12 3l9 7.5" />
+          <path d="M5.5 9.8V21h13V9.8" />
+        </svg>
+      );
+    case "bell":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M15 18H5.5c1.8-1.8 2.5-3.3 2.5-6V9a4 4 0 1 1 8 0v3c0 2.7.8 4.2 2.5 6H15Z" />
+          <path d="M10 20a2 2 0 0 0 4 0" />
+        </svg>
+      );
+    case "mail":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+          <path d="m4.5 7 7.5 6 7.5-6" />
+        </svg>
+      );
+    case "user":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <circle cx="12" cy="8" r="3.5" />
+          <path d="M4 20a8 8 0 0 1 16 0" />
+        </svg>
+      );
+    case "search":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <circle cx="11" cy="11" r="6.5" />
+          <path d="m16 16 4.5 4.5" />
+        </svg>
+      );
+    case "login":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M13 4h6v16h-6" />
+          <path d="m3 12 8-6v4h6v4h-6v4z" />
+        </svg>
+      );
+    case "logout":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M11 4H5v16h6" />
+          <path d="m21 12-8 6v-4H7v-4h6V6z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
 }
 
 export default function App() {

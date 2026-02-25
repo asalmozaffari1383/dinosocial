@@ -188,14 +188,14 @@ function CommentNode({
       style={{
         marginLeft: depth * 16,
         padding: "10px 10px 8px",
-        border: "1px solid #e0ebf4",
+        border: "1px solid var(--tw-border-soft)",
         borderRadius: 10,
-        background: "#fbfdff",
+        background: "var(--tw-surface-soft)",
         marginBottom: 8,
       }}
     >
       <strong>@{author}</strong>{" "}
-      <small style={{ color: "#666" }}>
+      <small style={{ color: "var(--tw-muted)" }}>
         {formatDate(getCommentTime(comment))}
       </small>
       <p>{getCommentText(comment)}</p>
@@ -233,10 +233,10 @@ function CommentNode({
               width: "100%",
               marginBottom: 8,
               padding: 8,
-              border: "1px solid #c7dff0",
+              border: "1px solid var(--tw-input-border)",
               borderRadius: 8,
-              background: "#ffffff",
-              color: "#17344e",
+              background: "var(--tw-surface)",
+              color: "var(--tw-page-text)",
             }}
           />
           <button
@@ -248,7 +248,7 @@ function CommentNode({
             {replySubmitting ? "Posting..." : "Post Reply"}
           </button>
           {replyError ? (
-            <p style={{ color: "red", marginTop: 6, marginBottom: 0 }}>
+            <p style={{ color: "#c73939", marginTop: 6, marginBottom: 0 }}>
               {replyError}
             </p>
           ) : null}
@@ -655,10 +655,10 @@ function FeedView() {
                     width: "100%",
                     marginBottom: 8,
                     padding: 8,
-                    border: "1px solid #c7dff0",
+                    border: "1px solid var(--tw-input-border)",
                     borderRadius: 8,
-                    background: "#ffffff",
-                    color: "#17344e",
+                    background: "var(--tw-surface)",
+                    color: "var(--tw-page-text)",
                   }}
                 />
                 <button
@@ -724,7 +724,7 @@ function FeedView() {
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(54, 93, 126, 0.25)",
+            background: "var(--tw-overlay)",
             display: "grid",
             placeItems: "center",
             padding: 20,
@@ -815,5 +815,30 @@ function NavIcon({ name }) {
 }
 
 export default function App() {
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const applyTheme = (isDark) => {
+      document.documentElement.setAttribute(
+        "data-theme",
+        isDark ? "dark" : "light"
+      );
+    };
+
+    applyTheme(media.matches);
+
+    const onThemeChange = (event) => {
+      applyTheme(event.matches);
+    };
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", onThemeChange);
+      return () => media.removeEventListener("change", onThemeChange);
+    }
+
+    media.addListener(onThemeChange);
+    return () => media.removeListener(onThemeChange);
+  }, []);
+
   return <FeedView />;
 }

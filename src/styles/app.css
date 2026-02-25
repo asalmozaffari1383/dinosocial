@@ -402,7 +402,69 @@ button:disabled {
   }
 }
 
-/* Twitter-like 3-column layout (light mode) */
+/* Twitter-like 3-column layout + system theme */
+:root {
+  --tw-page-text: #17344e;
+  --tw-border: #d5e5f2;
+  --tw-border-soft: #deebf6;
+  --tw-surface: #ffffff;
+  --tw-surface-soft: #f7fbff;
+  --tw-surface-alt: #f5fbff;
+  --tw-hover: #eaf5ff;
+  --tw-muted: #5f7f99;
+  --tw-card-shadow: 0 8px 18px rgba(43, 91, 128, 0.08);
+  --tw-card-shadow-soft: 0 6px 16px rgba(43, 91, 128, 0.08);
+  --tw-logo: #2f88c5;
+  --tw-nav: #244b6b;
+  --tw-avatar-fg: #2a5f87;
+  --tw-avatar-bg: #e6f3ff;
+  --tw-avatar-border: #c5def0;
+  --tw-btn-border: #c4dceb;
+  --tw-btn-bg: #f0f8ff;
+  --tw-btn-bg-hover: #e4f2fe;
+  --tw-btn-fg: #234d70;
+  --tw-input-bg: #f3f9ff;
+  --tw-input-border: #c7dff0;
+  --tw-mobile-bg: rgba(255, 255, 255, 0.96);
+  --tw-mobile-shadow: 0 10px 24px rgba(41, 84, 119, 0.2);
+  --tw-overlay: rgba(54, 93, 126, 0.25);
+}
+
+[data-theme="dark"] {
+  --tw-page-text: #d7e4f2;
+  --tw-border: #2c4258;
+  --tw-border-soft: #32495f;
+  --tw-surface: #111d2a;
+  --tw-surface-soft: #0f1a27;
+  --tw-surface-alt: #0f1b28;
+  --tw-hover: #1a2f45;
+  --tw-muted: #93acc3;
+  --tw-card-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
+  --tw-card-shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.35);
+  --tw-logo: #67b8ff;
+  --tw-nav: #d2e2f1;
+  --tw-avatar-fg: #b9d9f6;
+  --tw-avatar-bg: #213449;
+  --tw-avatar-border: #35506a;
+  --tw-btn-border: #3a5873;
+  --tw-btn-bg: #182b3f;
+  --tw-btn-bg-hover: #233b53;
+  --tw-btn-fg: #d7e7f8;
+  --tw-input-bg: #122131;
+  --tw-input-border: #3c5670;
+  --tw-mobile-bg: rgba(16, 27, 40, 0.96);
+  --tw-mobile-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+  --tw-overlay: rgba(4, 9, 14, 0.55);
+}
+
+[data-theme="dark"] body {
+  color: #d7e4f2;
+  background:
+    radial-gradient(circle at 10% 0%, #1a3b3a 0%, transparent 33%),
+    radial-gradient(circle at 96% 12%, #1d2f45 0%, transparent 44%),
+    linear-gradient(180deg, #0b1621 0%, #0f1a27 100%);
+}
+
 .tw-app-shell {
   min-height: 100vh;
   display: grid;
@@ -411,16 +473,16 @@ button:disabled {
   max-width: 1360px;
   margin: 0 auto;
   padding: 14px;
-  color: #17344e;
+  color: var(--tw-page-text);
 }
 
 .tw-sidebar {
   position: sticky;
   top: 14px;
   height: calc(100vh - 28px);
-  border: 1px solid #d5e5f2;
+  border: 1px solid var(--tw-border);
   border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+  background: linear-gradient(180deg, var(--tw-surface) 0%, var(--tw-surface-alt) 100%);
   padding: 16px 12px;
   display: flex;
   flex-direction: column;
@@ -430,7 +492,7 @@ button:disabled {
 .tw-logo {
   font-size: 1.45rem;
   font-weight: 800;
-  color: #2f88c5;
+  color: var(--tw-logo);
 }
 
 .tw-nav {
@@ -444,7 +506,7 @@ button:disabled {
   gap: 10px;
   border: 1px solid transparent;
   background: transparent;
-  color: #244b6b;
+  color: var(--tw-nav);
   border-radius: 12px;
   text-align: left;
   padding: 10px 12px;
@@ -467,13 +529,13 @@ button:disabled {
 }
 
 .tw-nav-item:hover {
-  border-color: #c6ddf0;
-  background: #eaf5ff;
+  border-color: var(--tw-border);
+  background: var(--tw-hover);
 }
 
 .tw-session-box {
   margin-top: auto;
-  border-top: 1px solid #dce9f4;
+  border-top: 1px solid var(--tw-border-soft);
   padding-top: 10px;
   display: grid;
   gap: 10px;
@@ -496,9 +558,9 @@ button:disabled {
   display: grid;
   place-items: center;
   font-weight: 800;
-  color: #2a5f87;
-  background: #e6f3ff;
-  border: 1px solid #c5def0;
+  color: var(--tw-avatar-fg);
+  background: var(--tw-avatar-bg);
+  border: 1px solid var(--tw-avatar-border);
 }
 
 .tw-profile-meta {
@@ -508,23 +570,23 @@ button:disabled {
 
 .tw-profile-meta strong {
   font-size: 0.92rem;
-  color: #1f4566;
+  color: var(--tw-page-text);
 }
 
 .tw-profile-meta small {
-  color: #64829e;
+  color: var(--tw-muted);
   font-size: 0.78rem;
 }
 
 .tw-feed-column {
-  border: 1px solid #d5e5f2;
+  border: 1px solid var(--tw-border);
   border-radius: 20px;
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  background: linear-gradient(180deg, var(--tw-surface) 0%, var(--tw-surface-soft) 100%);
   padding: 14px;
 }
 
 .tw-feed-header {
-  border-bottom: 1px solid #deebf6;
+  border-bottom: 1px solid var(--tw-border-soft);
   margin-bottom: 12px;
   padding-bottom: 10px;
 }
@@ -536,22 +598,22 @@ button:disabled {
 
 .tw-feed-header p {
   margin: 0;
-  color: #5d7892;
+  color: var(--tw-muted);
 }
 
 .tw-metrics {
-  color: #5f7f99;
+  color: var(--tw-muted);
   font-size: 0.9rem;
   margin-bottom: 14px;
 }
 
 .tw-post-card {
-  border: 1px solid #d9e8f4;
+  border: 1px solid var(--tw-border-soft);
   border-radius: 16px;
   padding: 14px;
   margin-bottom: 12px;
-  background: #ffffff;
-  box-shadow: 0 8px 18px rgba(43, 91, 128, 0.08);
+  background: var(--tw-surface);
+  box-shadow: var(--tw-card-shadow);
 }
 
 .tw-post-card h3 {
@@ -559,7 +621,7 @@ button:disabled {
 }
 
 .tw-post-card p {
-  color: #1f405d;
+  color: var(--tw-page-text);
 }
 
 .tw-post-card ul {
@@ -569,25 +631,25 @@ button:disabled {
 }
 
 .mini-action-btn {
-  border: 1px solid #c4dceb;
+  border: 1px solid var(--tw-btn-border);
   border-radius: 8px;
   padding: 4px 9px;
-  background: #f0f8ff;
-  color: #234d70;
+  background: var(--tw-btn-bg);
+  color: var(--tw-btn-fg);
   font-weight: 700;
 }
 
 .mini-action-btn:hover {
-  background: #e4f2fe;
+  background: var(--tw-btn-bg-hover);
 }
 
 .reply-editor {
   margin-top: 6px;
   margin-bottom: 10px;
   padding: 10px;
-  border: 1px solid #d4e6f3;
+  border: 1px solid var(--tw-border-soft);
   border-radius: 10px;
-  background: #f5fbff;
+  background: var(--tw-surface-alt);
 }
 
 .tw-right-panel {
@@ -600,11 +662,11 @@ button:disabled {
 }
 
 .tw-panel-card {
-  border: 1px solid #d5e5f2;
+  border: 1px solid var(--tw-border);
   border-radius: 18px;
-  background: #ffffff;
+  background: var(--tw-surface);
   padding: 14px;
-  box-shadow: 0 6px 16px rgba(43, 91, 128, 0.08);
+  box-shadow: var(--tw-card-shadow-soft);
 }
 
 .tw-panel-card h3 {
@@ -618,9 +680,9 @@ button:disabled {
 .tw-search {
   width: 100%;
   border-radius: 999px;
-  border: 1px solid #c7dff0;
-  background: #f3f9ff;
-  color: #17344e;
+  border: 1px solid var(--tw-input-border);
+  background: var(--tw-input-bg);
+  color: var(--tw-page-text);
   padding: 10px 14px;
 }
 
@@ -630,7 +692,7 @@ button:disabled {
   padding: 0;
   display: grid;
   gap: 8px;
-  color: #2b5375;
+  color: var(--tw-page-text);
 }
 
 .tw-mobile-bar {
@@ -669,11 +731,11 @@ button:disabled {
     right: 10px;
     bottom: 10px;
     min-height: 64px;
-    border: 1px solid #c7dff0;
+    border: 1px solid var(--tw-input-border);
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.96);
+    background: var(--tw-mobile-bg);
     backdrop-filter: blur(6px);
-    box-shadow: 0 10px 24px rgba(41, 84, 119, 0.2);
+    box-shadow: var(--tw-mobile-shadow);
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     align-items: center;
@@ -683,7 +745,7 @@ button:disabled {
   .tw-mobile-btn {
     border: 0;
     background: transparent;
-    color: #1d4465;
+    color: var(--tw-btn-fg);
     border-radius: 12px;
     margin: 0 4px;
     min-height: 50px;
@@ -694,7 +756,7 @@ button:disabled {
   }
 
   .tw-mobile-btn:hover {
-    background: #eaf5ff;
+    background: var(--tw-hover);
   }
 
   .tw-mobile-icon {

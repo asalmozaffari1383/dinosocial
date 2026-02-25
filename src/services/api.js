@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = "https://dinosocial.ir";
+const DEFAULT_BASE_URL = "https://api.dinosocial.ir";
 const ACCESS_TOKEN_KEY = "dinosocial_access_token";
 const REFRESH_TOKEN_KEY = "dinosocial_refresh_token";
 
@@ -149,10 +149,19 @@ async function refreshAccessToken() {
 }
 
 async function request(path, options = {}, retry = true) {
-  const { method = "GET", query, body, includeAuth = true } = options;
+  const {
+    method = "GET",
+    query,
+    body,
+    includeAuth = true,
+    headers: customHeaders = {},
+  } = options;
+
+  const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
 
   const headers = {
-    ...(body ? { "Content-Type": "application/json" } : {}),
+    ...(!isFormData && body ? { "Content-Type": "application/json" } : {}),
+    ...customHeaders,
     ...(includeAuth ? authHeader(accessToken) : {}),
   };
 
@@ -162,7 +171,11 @@ async function request(path, options = {}, retry = true) {
       method,
       credentials: "include",
       headers,
-      body: body ? JSON.stringify(body) : undefined,
+      body: body
+        ? isFormData
+          ? body
+          : JSON.stringify(body)
+        : undefined,
     });
   } catch {
     throw new ApiError(`Failed to reach API at ${API_BASE_URL}`, 0, null);
@@ -252,6 +265,29 @@ export const api = {
       method: "POST",
       body: { text, parent_id: parentId },
     }),
+
+  createPost: ({ text, files = [] }) => {
+    const safeText = String(text || "").trim();
+    const safeFiles = Array.isArray(files) ? files.slice(0, 8) : [];
+
+    if (safeFiles.length > 0) {
+      const formData = new FormData();
+      formData.append("text", safeText);
+      safeFiles.forEach((file) => {
+        formData.append("media", file);
+      });
+
+      return request("/api/posts", {
+        method: "POST",
+        body: formData,
+      });
+    }
+
+    return request("/api/posts", {
+      method: "POST",
+      body: { text: safeText },
+    });
+  },
 
   vote: ({ targetType, targetId, value }) =>
     request("/api/votes", {

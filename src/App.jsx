@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/login";
 import { api, API_BASE_URL } from "./services/api";
@@ -19,9 +19,71 @@ function formatDate(value) {
 }
 
 function isImage(mediaItem) {
+  if (typeof mediaItem === "string") {
+    return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(mediaItem);
+  }
   return (
     typeof mediaItem?.mime_type === "string" &&
     mediaItem.mime_type.startsWith("image/")
+  );
+}
+
+function getMediaUrl(mediaItem) {
+  if (typeof mediaItem === "string") return mediaItem;
+  return mediaItem?.url || "";
+}
+
+function getPostAuthor(post) {
+  if (post?.author && typeof post.author === "object") {
+    return {
+      id: post.author.id ?? null,
+      username: post.author.username || "",
+      name: post.author.name || "",
+      profileImageUrl: post.author.profile_image_url || "",
+    };
+  }
+
+  if (typeof post?.author === "string" || typeof post?.author === "number") {
+    return {
+      id: null,
+      username: String(post.author),
+      name: "",
+      profileImageUrl: "",
+    };
+  }
+
+  return {
+    id: null,
+    username: "",
+    name: "",
+    profileImageUrl: "",
+  };
+}
+
+function getPostAuthorLabel(post) {
+  const author = getPostAuthor(post);
+  return author.name || author.username || "Unknown";
+}
+
+function getPostMediaItems(post) {
+  if (!Array.isArray(post?.media)) return [];
+
+  return post.media
+    .filter((item) => isImage(item) && getMediaUrl(item))
+    .slice(0, 8)
+    .map((item, index) => ({
+      id: item?.id || `media-${index}`,
+      url: getMediaUrl(item),
+    }));
+}
+
+function hasUnsupportedVideoMedia(post) {
+  if (!Array.isArray(post?.media)) return false;
+  return post.media.some(
+    (item) =>
+      typeof item === "object" &&
+      typeof item?.mime_type === "string" &&
+      item.mime_type.startsWith("video/")
   );
 }
 
@@ -62,6 +124,7 @@ function getCommentId(comment) {
 
 function getCommentAuthor(comment) {
   if (typeof comment?.author === "string") return comment.author;
+  if (comment?.author?.name) return comment.author.name;
   if (comment?.author?.username) return comment.author.username;
   if (comment?.user?.username) return comment.user.username;
   return "unknown";
@@ -280,6 +343,138 @@ function CommentNode({
   );
 }
 
+function PostMediaCarousel({ items }) {
+  const trackRef = useRef(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+
+  const recalcActive = useCallback(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const slides = Array.from(track.querySelectorAll(".tw-media-slide"));
+    if (slides.length === 0) return;
+
+    const leftEdge = track.scrollLeft + 2;
+    let bestIndex = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    slides.forEach((slide, index) => {
+      const distance = Math.abs(slide.offsetLeft - leftEdge);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = index;
+      }
+    });
+
+    setActiveIndex(bestIndex);
+  }, []);
+
+  useEffect(() => {
+    recalcActive();
+  }, [items, recalcActive]);
+
+  const scrollToIndex = useCallback((index) => {
+    const track = trackRef.current;
+    if (!track) return;
+    const slides = Array.from(track.querySelectorAll(".tw-media-slide"));
+    const target = slides[index];
+    if (!target) return;
+    track.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
+    setActiveIndex(index);
+  }, []);
+
+  const goPrev = () => {
+    if (items.length === 0) return;
+    scrollToIndex(Math.max(0, activeIndex - 1));
+  };
+
+  const goNext = () => {
+    if (items.length === 0) return;
+    scrollToIndex(Math.min(items.length - 1, activeIndex + 1));
+  };
+
+  const openViewer = (index) => {
+    setViewerIndex(index);
+    setViewerOpen(true);
+  };
+
+  return (
+    <div className="tw-media-carousel">
+      {items.length > 1 ? (
+        <div className="tw-media-controls">
+          <button type="button" className="mini-action-btn" onClick={goPrev}>
+            ←
+          </button>
+          <span className="tw-media-counter">
+            {activeIndex + 1}/{items.length}
+          </span>
+          <button type="button" className="mini-action-btn" onClick={goNext}>
+            →
+          </button>
+        </div>
+      ) : null}
+
+      <div
+        ref={trackRef}
+        className="tw-media-track"
+        onScroll={recalcActive}
+      >
+        {items.map((item, index) => (
+          <article
+            key={item.id}
+            className={`tw-media-slide ${activeIndex === index ? "is-active" : ""}`}
+            onClick={() => openViewer(index)}
+          >
+            <img src={item.url} alt="" loading="lazy" />
+          </article>
+        ))}
+      </div>
+
+      {viewerOpen ? (
+        <div className="tw-media-viewer" onClick={() => setViewerOpen(false)}>
+          <div
+            className="tw-media-viewer-body"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="mini-action-btn tw-media-viewer-close"
+              onClick={() => setViewerOpen(false)}
+            >
+              Close
+            </button>
+            {items.length > 1 ? (
+              <button
+                type="button"
+                className="mini-action-btn tw-media-viewer-prev"
+                onClick={() =>
+                  setViewerIndex((prev) => (prev === 0 ? items.length - 1 : prev - 1))
+                }
+              >
+                ←
+              </button>
+            ) : null}
+            <img src={items[viewerIndex]?.url} alt="" />
+            {items.length > 1 ? (
+              <button
+                type="button"
+                className="mini-action-btn tw-media-viewer-next"
+                onClick={() =>
+                  setViewerIndex((prev) => (prev + 1) % items.length)
+                }
+              >
+                →
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function FeedView() {
   const { isAuthenticated, username, logout } = useAuth();
   const limit = 10;
@@ -291,6 +486,11 @@ function FeedView() {
   const [loading, setLoading] = useState(false);
   const [commentsByPost, setCommentsByPost] = useState({});
   const [showLogin, setShowLogin] = useState(false);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [createPostText, setCreatePostText] = useState("");
+  const [createPostImages, setCreatePostImages] = useState([]);
+  const [createPostSubmitting, setCreatePostSubmitting] = useState(false);
+  const [createPostError, setCreatePostError] = useState("");
 
   const [newCommentByPost, setNewCommentByPost] = useState({});
   const [commentSubmittingByPost, setCommentSubmittingByPost] = useState({});
@@ -324,6 +524,19 @@ function FeedView() {
       setLoading(false);
     }
   }, [page]);
+
+  const refreshFeedFromStart = useCallback(async () => {
+    try {
+      const response = await api.getPosts({ page: 1, limit });
+      const incomingPosts = Array.isArray(response?.posts) ? response.posts : [];
+      setPosts(incomingPosts);
+      setTotal(Number(response?.total || 0));
+      setPage(1);
+      setCommentsByPost({});
+    } catch (err) {
+      setError(err?.message || "Failed to refresh feed");
+    }
+  }, [limit]);
 
   const loadComments = useCallback(async (postId) => {
     try {
@@ -549,12 +762,99 @@ function FeedView() {
 
   const displayName = isAuthenticated ? username || "User" : "Guest";
   const avatarChar = displayName.charAt(0).toUpperCase();
+  const createPostCharCount = createPostText.length;
+
+  const closeCreatePost = useCallback(() => {
+    setShowCreatePost(false);
+    setCreatePostText("");
+    setCreatePostError("");
+    setCreatePostImages((prev) => {
+      prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+      return [];
+    });
+  }, []);
+
+  const openCreatePost = useCallback(() => {
+    setCreatePostError("");
+    setShowCreatePost(true);
+  }, []);
+
+  const handleCreatePostImageSelect = useCallback((event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    setCreatePostImages((prev) => {
+      const next = [...prev];
+      files.slice(0, Math.max(0, 8 - next.length)).forEach((file) => {
+        next.push({
+          id: `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          file,
+          previewUrl: URL.createObjectURL(file),
+        });
+      });
+      return next;
+    });
+
+    event.target.value = "";
+  }, []);
+
+  const handleRemoveCreateImage = useCallback((id) => {
+    setCreatePostImages((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((item) => item.id !== id);
+    });
+  }, []);
+
+  const handleSubmitCreatePost = useCallback(async () => {
+    const text = createPostText.trim();
+    const selectedFiles = createPostImages.map((item) => item.file).filter(Boolean);
+    if (!text && selectedFiles.length === 0) return;
+
+    if (!isAuthenticated) {
+      setShowLogin(true);
+      setCreatePostError("You need to login to post.");
+      return;
+    }
+
+    try {
+      setCreatePostSubmitting(true);
+      setCreatePostError("");
+
+      await api.createPost({
+        text,
+        files: selectedFiles,
+      });
+
+      await refreshFeedFromStart();
+      closeCreatePost();
+    } catch (err) {
+      setCreatePostError(err?.message || "Failed to create post.");
+    } finally {
+      setCreatePostSubmitting(false);
+    }
+  }, [
+    closeCreatePost,
+    createPostImages,
+    createPostText,
+    isAuthenticated,
+    refreshFeedFromStart,
+  ]);
+
   const mobileBarItems = [
     { key: "home", label: "Home", icon: "home" },
     { key: "notifications", label: "Notifications", icon: "bell" },
     { key: "messages", label: "Messages", icon: "mail" },
     { key: "profile", label: "Profile", icon: "user" },
     { key: "search", label: "Search", icon: "search" },
+    {
+      key: "create",
+      label: "Create",
+      icon: "plus",
+      onClick: openCreatePost,
+    },
     {
       key: "auth",
       label: isAuthenticated ? "Logout" : "Login",
@@ -566,7 +866,10 @@ function FeedView() {
   return (
     <div className="tw-app-shell">
       <aside className="tw-sidebar">
-        <div className="tw-logo">Dino</div>
+        <div className="tw-logo">
+          <img src="/dino-logo.png" alt="DinoSocial logo" />
+          <span>DinoSocial</span>
+        </div>
         <nav className="tw-nav">
           {SIDEBAR_ITEMS.map((item) => (
             <button key={item.label} className="tw-nav-item" type="button">
@@ -577,6 +880,13 @@ function FeedView() {
             </button>
           ))}
         </nav>
+
+        <button onClick={openCreatePost} className="tw-nav-item tw-add-post-item" type="button">
+          <span className="tw-nav-icon" aria-hidden="true">
+            <NavIcon name="plus" />
+          </span>
+          <span className="tw-nav-label">Add Post</span>
+        </button>
 
         <div className="tw-session-box">
           <div className="tw-profile-row">
@@ -622,24 +932,20 @@ function FeedView() {
           const commentDraft = newCommentByPost[post.id] || "";
           const submittingComment = Boolean(commentSubmittingByPost[post.id]);
           const commentError = commentErrorByPost[post.id] || "";
+          const mediaItems = getPostMediaItems(post);
+          const hasUnsupportedVideo = hasUnsupportedVideoMedia(post);
 
           return (
             <article key={post.id} className="tw-post-card">
-              <h3>Author #{post.author}</h3>
+              <h3>Author: {getPostAuthorLabel(post)}</h3>
               <p>{post.text}</p>
 
-              {Array.isArray(post.media) &&
-                post.media.map((item) =>
-                  isImage(item) ? (
-                    <img
-                      key={item.id}
-                      src={item.url}
-                      alt=""
-                      width="200"
-                      style={{ display: "block", marginBottom: 10 }}
-                    />
-                  ) : null
-                )}
+              {mediaItems.length > 0 ? <PostMediaCarousel items={mediaItems} /> : null}
+              {hasUnsupportedVideo ? (
+                <p className="tw-media-note">
+                  Video playback is not supported yet in this feed.
+                </p>
+              ) : null}
 
               <h4>Comments ({commentCount})</h4>
 
@@ -739,6 +1045,70 @@ function FeedView() {
         </div>
       ) : null}
 
+      {showCreatePost ? (
+        <div className="tw-compose-overlay" onClick={closeCreatePost}>
+          <div className="tw-compose-card" onClick={(event) => event.stopPropagation()}>
+            <div className="tw-compose-head">
+              <div className="tw-compose-user">
+                <div className="tw-avatar">{avatarChar}</div>
+                <div>
+                  <strong>{displayName}</strong>
+                  <small>@{(username || "you").toLowerCase()}</small>
+                </div>
+              </div>
+              <button type="button" className="mini-action-btn" onClick={closeCreatePost}>
+                Close
+              </button>
+            </div>
+
+            <textarea
+              className="tw-compose-textarea"
+              placeholder="What's happening?"
+              value={createPostText}
+              onChange={(event) => setCreatePostText(event.target.value)}
+              maxLength={280}
+              rows={6}
+            />
+
+            <div className="tw-compose-actions">
+              <label className="tw-compose-upload">
+                + Image
+                <input type="file" accept="image/*" multiple onChange={handleCreatePostImageSelect} />
+              </label>
+
+              <span className="tw-compose-count">{createPostCharCount}/280</span>
+
+              <button
+                type="button"
+                disabled={!createPostText.trim() || createPostSubmitting}
+                onClick={handleSubmitCreatePost}
+              >
+                {createPostSubmitting ? "Posting..." : "Post"}
+              </button>
+            </div>
+
+            {createPostImages.length > 0 ? (
+              <div className="tw-compose-preview-grid">
+                {createPostImages.map((item) => (
+                  <div key={item.id} className="tw-compose-preview-item">
+                    <img src={item.previewUrl} alt="" />
+                    <button
+                      type="button"
+                      className="mini-action-btn"
+                      onClick={() => handleRemoveCreateImage(item.id)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {createPostError ? <p className="error">{createPostError}</p> : null}
+          </div>
+        </div>
+      ) : null}
+
       <nav className="tw-mobile-bar" aria-label="Mobile navigation">
         {mobileBarItems.map((item) => (
           <button
@@ -795,6 +1165,13 @@ function NavIcon({ name }) {
           <path d="m16 16 4.5 4.5" />
         </svg>
       );
+    case "plus":
+      return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <path d="M12 5v14" />
+          <path d="M5 12h14" />
+        </svg>
+      );
     case "login":
       return (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -842,3 +1219,4 @@ export default function App() {
 
   return <FeedView />;
 }
+

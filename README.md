@@ -44,7 +44,20 @@ npm run preview
 ```
 
 ## Environment Variables
-- `VITE_API_BASE_URL`: Base URL for the backend API. Default is `https://dinosocial.ir` if not set.
+- `VITE_API_BASE_URL`: Base URL for the backend API. Default is `https://api.dinosocial.ir` if not set.
+
+## Deployment (VPS)
+- `./setup_domains.sh`: One-time install/update of nginx configs for:
+  - `dinosocial.ir` -> serve frontend static files from `/var/www/dinosocial.ir`
+  - `api.dinosocial.ir` -> reverse proxy to backend on `127.0.0.1:8000`
+- `./deploy_rsync.sh`: Rsync frontend source to server, build there, publish `dist/` to `/var/www/dinosocial.ir`, and reload nginx.
+
+Example:
+```bash
+chmod +x setup_domains.sh deploy_rsync.sh
+./setup_domains.sh
+./deploy_rsync.sh
+```
 
 ## API Dependencies
 This frontend expects the backend to expose:

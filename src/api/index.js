@@ -1,4 +1,4 @@
-const DEFAULT_BASE_URL = "https://dinosocial.ir";
+const DEFAULT_BASE_URL = "https://api.dinosocial.ir";
 
 function normalizeBaseUrl(rawValue) {
   const value = (rawValue || "").trim();

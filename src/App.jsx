@@ -845,9 +845,7 @@ function FeedView() {
 
   const mobileBarItems = [
     { key: "home", label: "Home", icon: "home" },
-    { key: "notifications", label: "Notifications", icon: "bell" },
     { key: "messages", label: "Messages", icon: "mail" },
-    { key: "profile", label: "Profile", icon: "user" },
     { key: "search", label: "Search", icon: "search" },
     {
       key: "create",
@@ -914,7 +912,27 @@ function FeedView() {
 
       <main className="tw-feed-column">
         <header className="tw-feed-header">
-          <h1>DinoSocial Live</h1>
+          <div className="tw-feed-header-top">
+            <h1>DinoSocial Live</h1>
+            <div className="tw-mobile-top-actions">
+              <button type="button" className="tw-mobile-top-btn">
+                <span className="tw-nav-icon" aria-hidden="true">
+                  <NavIcon name="bell" />
+                </span>
+              </button>
+              <button
+                type="button"
+                className="tw-mobile-top-btn"
+                onClick={() => {
+                  if (!isAuthenticated) setShowLogin(true);
+                }}
+              >
+                <span className="tw-nav-icon" aria-hidden="true">
+                  <NavIcon name="user" />
+                </span>
+              </button>
+            </div>
+          </div>
           <p>Source: {API_BASE_URL}</p>
         </header>
 

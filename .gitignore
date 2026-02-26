@@ -22,3 +22,21 @@ pnpm-debug.log*
 
 # coverage
 coverage/
+
+# deployment/local ops (contains server details)
+deploy_rsync.sh
+
+# local sensitive notes / prompts
+question.txt
+
+# key and certificate material
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+*.pfx
+
+# generic secret files
+secrets/
+*.secret
